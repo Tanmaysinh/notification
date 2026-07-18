@@ -24,3 +24,7 @@ frontend/*.ntvs*
 frontend/*.njsproj
 frontend/*.sln
 frontend/*.sw?
+
+backend/.DS_Store
+backend/target
+backend/.idea

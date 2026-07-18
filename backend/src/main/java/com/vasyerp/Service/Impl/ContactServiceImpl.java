@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class ContactServiceImpl implements ContactService {
 
-
     private final ContactRepository contactRepository;
 
     public ContactServiceImpl(ContactRepository contactRepository) {
@@ -24,7 +23,7 @@ public class ContactServiceImpl implements ContactService {
     }
 
     public Contact create(ContactRequest req) {
-        Contact contact = new Contact(req.getName(), req.getEmail(), req.getPhoneNumber());
+        Contact contact = new Contact(req.getName(), req.getEmail(), req.getPhoneNumber(),req.getDeviceToken());
         return contactRepository.save(contact);
     }
 
@@ -34,6 +33,7 @@ public class ContactServiceImpl implements ContactService {
         contact.setName(req.getName());
         contact.setEmail(req.getEmail());
         contact.setPhoneNumber(req.getPhoneNumber());
+        contact.setDeviceToken(req.getDeviceToken());
         return contactRepository.save(contact);
     }
 

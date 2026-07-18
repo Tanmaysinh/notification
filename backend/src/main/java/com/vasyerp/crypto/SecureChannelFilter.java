@@ -41,7 +41,7 @@ public class SecureChannelFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getRequestURI();
         // Only /api/auth/** goes through the encrypted channel for now
-        return !path.startsWith("/api/auth/");
+        return !path.startsWith("/api/");
     }
 
     @Override

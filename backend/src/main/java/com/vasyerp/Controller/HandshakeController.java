@@ -1,4 +1,4 @@
-package com.vasyerp.backend.crypto;
+package com.vasyerp.Controller;
 
 import com.vasyerp.Model.HandshakeRequest;
 import com.vasyerp.Model.HandshakeResponse;
@@ -15,7 +15,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/crypto")
+@RequestMapping("/crypto")
 public class HandshakeController {
 
     private final SessionKeyStore sessionKeyStore;

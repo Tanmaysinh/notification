@@ -20,12 +20,16 @@ public class Contact {
     @Column(nullable = false)
     private String phoneNumber;
 
+    @Column(nullable = false)
+    private String deviceToken;
+
     protected Contact() {}
 
-    public Contact(String name, String email, String phoneNumber) {
+    public Contact(String name, String email, String phoneNumber,String deviceToken) {
         this.name = name;
         this.email = email;
         this.phoneNumber = phoneNumber;
+        this.deviceToken=deviceToken;
     }
 
     public String getContactId() { return contactId; }
@@ -35,4 +39,12 @@ public class Contact {
     public void setEmail(String email) { this.email = email; }
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getDeviceToken() {
+        return deviceToken;
+    }
+
+    public void setDeviceToken(String deviceToken) {
+        this.deviceToken = deviceToken;
+    }
 }

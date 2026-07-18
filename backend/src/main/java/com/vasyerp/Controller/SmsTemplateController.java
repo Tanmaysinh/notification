@@ -1,12 +1,14 @@
 //package com.vasyerp.Controller;
 //
 //import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.vasyerp.Entity.Contact;
-//import com.vasyerp.Model.ContactRequest;
+//import com.vasyerp.Entity.NotificationTemplate;
+//import com.vasyerp.Entity.PushTemplate;
+//import com.vasyerp.Entity.SmsTemplate;
 //import com.vasyerp.Model.EncryptedEnvelope;
 //import com.vasyerp.Model.PageRequestDto;
 //import com.vasyerp.Model.PageResultDto;
-//import com.vasyerp.Service.ContactService;
+//import com.vasyerp.Model.TemplateRequest;
+//import com.vasyerp.Service.TemplateService;
 //import com.vasyerp.crypto.AesGcmUtil;
 //import com.vasyerp.crypto.SessionKeyStore;
 //import org.springframework.data.domain.Page;
@@ -15,16 +17,16 @@
 //import java.util.Map;
 //
 //@RestController
-//@RequestMapping("/api/contacts")
-//public class ContactController {
+//@RequestMapping("/api/templates/sms")
+//public class SmsTemplateController {
 //
 //    private final SessionKeyStore sessionKeyStore;
-//    private final ContactService contactService;
+//    private final TemplateService<SmsTemplate> templateService;
 //    private final ObjectMapper objectMapper = new ObjectMapper();
 //
-//    public ContactController(SessionKeyStore sessionKeyStore, ContactService contactService) {
+//    public SmsTemplateController(SessionKeyStore sessionKeyStore, TemplateService<SmsTemplate> templateService) {
 //        this.sessionKeyStore = sessionKeyStore;
-//        this.contactService = contactService;
+//        this.templateService = templateService;
 //    }
 //
 //    @PostMapping("/list")
@@ -37,7 +39,7 @@
 //        byte[] plaintext = AesGcmUtil.decrypt(aesKey, envelope);
 //        PageRequestDto request = objectMapper.readValue(plaintext, PageRequestDto.class);
 //
-//        Page<Contact> page = contactService.list(request.getSearch(), request.getPage(), request.getSize());
+//        Page<SmsTemplate> page = templateService.list(request.getSearch(), request.getPage(), request.getSize());
 //
 //        byte[] responseBytes = objectMapper.writeValueAsBytes(PageResultDto.from(page));
 //        return AesGcmUtil.encrypt(aesKey, responseBytes);
@@ -51,9 +53,9 @@
 //        byte[] aesKey = sessionKeyStore.get(sessionId);
 //
 //        byte[] plaintext = AesGcmUtil.decrypt(aesKey, envelope);
-//        ContactRequest request = objectMapper.readValue(plaintext, ContactRequest.class);
+//        TemplateRequest request = objectMapper.readValue(plaintext, TemplateRequest.class);
 //
-//        Contact saved = contactService.create(request);
+//        NotificationTemplate saved = templateService.create(request);
 //
 //        byte[] responseBytes = objectMapper.writeValueAsBytes(saved);
 //        return AesGcmUtil.encrypt(aesKey, responseBytes);
@@ -68,9 +70,9 @@
 //        byte[] aesKey = sessionKeyStore.get(sessionId);
 //
 //        byte[] plaintext = AesGcmUtil.decrypt(aesKey, envelope);
-//        ContactRequest request = objectMapper.readValue(plaintext, ContactRequest.class);
+//        TemplateRequest request = objectMapper.readValue(plaintext, TemplateRequest.class);
 //
-//        Contact saved = contactService.update(id, request);
+//        NotificationTemplate saved = templateService.update(id, request);
 //
 //        byte[] responseBytes = objectMapper.writeValueAsBytes(saved);
 //        return AesGcmUtil.encrypt(aesKey, responseBytes);
@@ -83,55 +85,86 @@
 //    ) throws Exception {
 //        byte[] aesKey = sessionKeyStore.get(sessionId);
 //
-//        contactService.delete(id);
+//        templateService.delete(id);
 //
 //        byte[] responseBytes = objectMapper.writeValueAsBytes(Map.of("deleted", true));
 //        return AesGcmUtil.encrypt(aesKey, responseBytes);
 //    }
+//
+//
+//    @GetMapping("/")
+//    public EncryptedEnvelope list1(
+//            @RequestBody EncryptedEnvelope envelope,
+//            @RequestHeader("X-Session-Id") String sessionId
+//    ) throws Exception {
+//        byte[] aesKey = sessionKeyStore.get(sessionId);
+//
+//        byte[] plaintext = AesGcmUtil.decrypt(aesKey, envelope);
+//        PageRequestDto request = objectMapper.readValue(plaintext, PageRequestDto.class);
+//
+//        Page<SmsTemplate> page = templateService.list(request.getSearch(), request.getPage(), request.getSize());
+//
+//        byte[] responseBytes = objectMapper.writeValueAsBytes(PageResultDto.from(page));
+//        return AesGcmUtil.encrypt(aesKey, responseBytes);
+//    }
+//
+//
 //}
 
 
 package com.vasyerp.Controller;
 
-import com.vasyerp.Entity.Contact;
-import com.vasyerp.Model.ContactRequest;
+import com.vasyerp.Entity.NotificationTemplate;
+import com.vasyerp.Entity.SmsTemplate;
 import com.vasyerp.Model.PageRequestDto;
-import com.vasyerp.Model.PageResultDto;
-import com.vasyerp.Service.ContactService;
+import com.vasyerp.Model.TemplateRequest;
+import com.vasyerp.Service.TemplateService;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/contacts")
-public class ContactController {
+@RequestMapping("/api/templates/sms")
+public class SmsTemplateController {
 
-    private final ContactService contactService;
+    private final TemplateService<SmsTemplate> templateService;
 
-    public ContactController(ContactService contactService) {
-        this.contactService = contactService;
+    public SmsTemplateController(TemplateService<SmsTemplate> templateService) {
+        this.templateService = templateService;
     }
 
     @PostMapping("/list")
-    public PageResultDto<Contact> list(@RequestBody PageRequestDto request) {
-        Page<Contact> page = contactService.list(request.getSearch(), request.getPage(), request.getSize());
-        return PageResultDto.from(page);
+    public Page<SmsTemplate> list(@RequestBody PageRequestDto request) {
+        return templateService.list(
+                request.getSearch(),
+                request.getPage(),
+                request.getSize()
+        );
     }
 
     @PostMapping
-    public Contact create(@RequestBody ContactRequest request) {
-        return contactService.create(request);
+    public NotificationTemplate create(@RequestBody TemplateRequest request) {
+        return templateService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Contact update(@PathVariable String id, @RequestBody ContactRequest request) {
-        return contactService.update(id, request);
+    public NotificationTemplate update(
+            @PathVariable String id,
+            @RequestBody TemplateRequest request
+    ) {
+        return templateService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     public Map<String, Boolean> delete(@PathVariable String id) {
-        contactService.delete(id);
+        templateService.delete(id);
         return Map.of("deleted", true);
+    }
+
+    @GetMapping("/all")
+    public List<SmsTemplate> list1() {
+        return templateService.getAll();
     }
 }
