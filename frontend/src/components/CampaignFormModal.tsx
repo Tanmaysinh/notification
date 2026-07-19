@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/Modal";
 import ChannelPreview from "@/components/previews/ChannelPreview";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-// import { getAllTemplates } from "@/lib/apiClient";
 import type { Template, TemplateType } from "@/types/template";
 import type { Campaign, CampaignFormValues } from "@/types/campaign";
 
@@ -84,15 +83,6 @@ setChannels((c) => ({
   },
 }));
 
-      // setChannels((c) => ({
-      //   ...c,
-      //   [type]: {
-      //     ...c[type],
-      //     templates: response,
-      //     loading: false,
-      //   },
-      // }));
-      // setChannels((c) => ({ ...c, [type]: { ...c[type], templates, loading: false } }));
     } catch {
       setChannels((c) => ({ ...c, [type]: { ...c[type], loading: false } }));
     }
@@ -142,15 +132,7 @@ setChannels((c) => ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-//   function handleSubmit(e: React.FormEvent) {
-//     e.preventDefault();
-//     onSubmit(name, {
-//       name,
-//       smsTemplateId: channels.sms.enabled ? channels.sms.templateId : null,
-//       emailTemplateId: channels.email.enabled ? channels.email.templateId : null,
-//       pushTemplateId: channels.push.enabled ? channels.push.templateId : null,
-//     });
-//   }
+
 
 function handleSubmit(e: React.FormEvent) {
   e.preventDefault();

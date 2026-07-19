@@ -46,6 +46,11 @@ interface PageResponse<T> {
   size: number;
 }
 
+function countHelloKeywords(content: string): number {
+  const matches = content.match(/\bhello\b/gi);
+  return matches ? matches.length : 0;
+}
+
 const load = useCallback(async () => {
   setLoading(true);
 
@@ -67,19 +72,6 @@ const load = useCallback(async () => {
     setLoading(false);
   }
 }, [apiPath, page, search, secureFetch]);
-
-//   const load = useCallback(async () => {
-//     setLoading(true);
-//     try {
-//       const data = await getPage<Template>(apiPath, { page, size: PAGE_SIZE, search });
-//       setRows(data.content);
-//       setTotalPages(data.totalPages);
-//     } catch {
-//       setRows([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [apiPath, page, search]);
 
   useEffect(() => {
     load();
@@ -103,30 +95,20 @@ const load = useCallback(async () => {
     setModalOpen(true);
   }
 
-//   async function handleSave(e: React.FormEvent) {
-//     e.preventDefault();
-//     setSaving(true);
-//     setFormError(null);
-//     try {
-//       if (editing) {
-//         await updateItem<Template>(apiPath, editing.templateId, form);
-//       } else {
-//         await createItem<Template>(apiPath, form);
-//       }
-//       setModalOpen(false);
-//       load();
-//     } catch (err: any) {
-//       setFormError(err.message ?? "Could not save template.");
-//     } finally {
-//       setSaving(false);
-//     }
-//   }
 
 async function handleSave(e: React.FormEvent) {
   e.preventDefault();
 
   setSaving(true);
   setFormError(null);
+
+  const helloCount = countHelloKeywords(form.content);
+
+  if (helloCount > 3) {
+    setFormError("Content cannot contain the word 'hello' more than 3 times.");
+    setSaving(false);
+    return;
+  }
 
   try {
     if (editing) {

@@ -17,27 +17,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @EnableCaching
 public class AppConfig {
 
-//    @Bean
-//    public MessageConverter jsonMessageConverter() {
-//        return new Jackson2JsonMessageConverter(
-//                new ObjectMapper().findAndRegisterModules()
-//        );
-//    }
-
-//    @Bean
-//    public ObjectMapper objectMapper() {
-//        return new ObjectMapper()
-//                .findAndRegisterModules();
-//    }
-
-//    @Bean
-//    public ObjectMapper objectMapper() {
-//        ObjectMapper mapper = new ObjectMapper();
-//        mapper.registerModule(new JavaTimeModule());
-//        return mapper;
-//    }
-//
-
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();

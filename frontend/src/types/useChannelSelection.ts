@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-// import { getAllTemplates } from "@/lib/apiClient";
 import type { Template, TemplateType } from "@/types/template";
 
 export interface ChannelState {

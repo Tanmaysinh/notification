@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-// import { getPage } from "@/lib/apiClient";
 import type { Contact } from "@/types/contact";
 
 interface PageResponse<T> {

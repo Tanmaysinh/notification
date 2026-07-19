@@ -152,28 +152,6 @@ async function handleRetry(row: ReportRow, channel: ChannelRow) {
     load();
   }
 
-//   async function handleRetry(row: ReportRow) {
-//     const key = `${row.requestId}:${row.contactId}`;
-//     setRetryingKey(key);
-//     try {
-//       // const session = await getSession();
-//       // await retryNotification(session, row.requestId, row.contactId);
-//       await secureFetch(
-//   "/api/reports/retry",
-//   {
-//     requestId: detailChannel.row.requestId,
-//     contactId: detailChannel.row.contactId,
-//     channelType: detailChannel.channel.channelType,
-//   }
-// );
-//       load();
-//     } catch (err: any) {
-//       alert(err.message ?? "Retry failed.");
-//     } finally {
-//       setRetryingKey(null);
-//     }
-//   }
-
   return (
     <div>
     <div className="mb-6">
@@ -336,46 +314,7 @@ async function handleRetry(row: ReportRow, channel: ChannelRow) {
                       </td>
                     </tr>
 
-                    {/* {isExpanded && (
-                      <tr className={bg}>
-                        <td></td>
-                        <td colSpan={5} className="px-4 pb-4">
-                          <div className="border border-white/10 rounded-lg overflow-hidden">
-                            {row.channels.map((channel) => (
-                              <div
-                                key={channel.channelType}
-                                className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-0"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="text-sm text-white font-medium w-20">
-                                    {CHANNEL_LABELS[channel.channelType] ?? channel.channelType}
-                                  </span>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded-md ${
-                                      channel.latestStatus === "SENT"
-                                        ? "bg-green-500/10 text-green-400"
-                                        : channel.latestStatus === "FAILED"
-                                        ? "bg-red-500/10 text-red-400"
-                                        : "bg-yellow-500/10 text-yellow-400"
-                                    }`}
-                                  >
-                                    {channel.latestStatus}
-                                  </span>
-                                  <span className="text-xs text-gray-500">Retries: {channel.retryCount}/3</span>
-                                </div>
-
-                                <button
-                                  onClick={() => setDetailChannel({ row, channel })}
-                                  className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:bg-white/5"
-                                >
-                                  Show Content
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    )} */}
+                
 
                     {isExpanded && (
   <tr className={bg}>

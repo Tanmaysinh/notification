@@ -1,19 +1,3 @@
-// export interface ReportRow {
-//   requestId: string;
-//   campaignId: string | null;
-//   scheduleTime: string | null;
-//   createdAt: string;
-//   requestStatus: string;
-//   contactId: string;
-//   contactName: string;
-//   contactEmail: string | null;
-//   contactPhone: string | null;
-//   channels: string[];
-//   statusHistory: string[];
-//   latestStatus: string;
-//   retryCount: number;
-//   retryEligible: boolean;
-// }
 
 export interface ReportFilters {
   dateFrom?: string | null;
