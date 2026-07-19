@@ -74,7 +74,6 @@ export default function CampaignFormModal({
   }
 );
 
-console.log(response)
 
 setChannels((c) => ({
   ...c,

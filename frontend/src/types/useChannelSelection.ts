@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-import { getAllTemplates } from "@/lib/apiClient";
+// import { getAllTemplates } from "@/lib/apiClient";
 import type { Template, TemplateType } from "@/types/template";
 
 export interface ChannelState {
@@ -8,6 +8,14 @@ export interface ChannelState {
   templateId: string | null;
   templates: Template[];
   loading: boolean;
+}
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 export function initChannelState(): Record<TemplateType, ChannelState> {
@@ -19,7 +27,7 @@ export function initChannelState(): Record<TemplateType, ChannelState> {
 }
 
 export function useChannelSelection() {
-  const { getSession } = useSecureSession();
+  const { secureFetch } = useSecureSession();
   const [channels, setChannels] = useState<Record<TemplateType, ChannelState>>(initChannelState());
   const [activePreview, setActivePreview] = useState<TemplateType>("sms");
 
@@ -29,10 +37,17 @@ export function useChannelSelection() {
       return { ...c, [type]: { ...c[type], loading: true } };
     });
 
-    const session = await getSession();
-    const templates = await getAllTemplates<Template>(session, type).catch(() => []);
+     const result = await secureFetch<PageResponse<Template>>(
+    `/api/templates/${type}/list`, {
+      page: 0,
+      size: 1000,
+    });
 
-    setChannels((c) => ({ ...c, [type]: { ...c[type], templates, loading: false } }));
+
+    // const session = await getSession();
+    // const templates = await getAllTemplates<Template>(session, type).catch(() => []);
+
+    setChannels((c) => ({ ...c, [type]: { ...c[type], templates:result.content, loading: false } }));
   }
 
   function toggleChannel(type: TemplateType) {

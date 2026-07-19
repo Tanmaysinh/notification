@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-import { getReport, retryNotification } from "@/lib/apiClient";
+// import { getReport, retryNotification } from "@/lib/apiClient";
 import type { ReportRow, ChannelRow,ReportFilters } from "@/types/report";
 import Pagination from "@/components/Pagination";
 import ChannelDetailModal from "@/components/ChannelDetailModal";
+import { useSearchParams } from "react-router-dom";
+
 
 const REQUEST_STATUSES = ["SCHEDULED", "PROCESSING", "COMPLETED"];
 const NOTIFICATION_STATUSES = ["SENT", "FAILED", "PENDING"];
@@ -12,13 +14,24 @@ const CHANNEL_LABELS: Record<string, string> = { sms: "SMS", email: "Email", pus
 const GROUP_COLORS = ["bg-white/[0.02]", "bg-transparent"];
 const PAGE_SIZE = 15;
 
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+
 export default function ReportPage() {
-  const { getSession } = useSecureSession();
+  const { secureFetch } = useSecureSession();
+  const [searchParams] = useSearchParams();
+const requestIdFromUrl = searchParams.get("requestId");
 
   const [filters, setFilters] = useState<Omit<ReportFilters, "page" | "size">>({
     dateFrom: "",
     dateTo: "",
-    requestId: "",
+    requestId: requestIdFromUrl??"",
     notificationType: "",
     requestStatus: "",
     notificationStatus: "",
@@ -32,8 +45,10 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [retryingKey, setRetryingKey] = useState<string | null>(null);
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [detailChannel, setDetailChannel] = useState<{ row: ReportRow; channel: ChannelRow } | null>(null);
+  // const [detailChannel, setDetailChannel] = useState<{ row: ReportRow; channel: ChannelRow } | null>(null);
+  const [detailChannel, setDetailChannel] = useState<ChannelRow | null>(null);
   const [retrying, setRetrying] = useState(false);
+
 
   function rowKey(row: ReportRow) {
     return `${row.requestId}:${row.contactId}`;
@@ -44,25 +59,51 @@ export default function ReportPage() {
     setExpandedKey(expandedKey === key ? null : key);
   }
 
-  async function handleRetry() {
-    if (!detailChannel) return;
-    setRetrying(true);
-    try {
-      const session = await getSession();
-      await retryNotification(
-        session,
-        detailChannel.row.requestId,
-        detailChannel.row.contactId,
-        detailChannel.channel.channelType
-      );
-      setDetailChannel(null);
-      load();
-    } catch (err: any) {
-      alert(err.message ?? "Retry failed.");
-    } finally {
-      setRetrying(false);
-    }
+//   async function handleRetry() {
+//     if (!detailChannel) return;
+//     setRetrying(true);
+//     try {
+//       // const session = await getSession();
+//       // await retryNotification(
+//       //   session,
+//       //   detailChannel.row.requestId,
+//       //   detailChannel.row.contactId,
+//       //   detailChannel.channel.channelType
+//       // );
+
+//       await secureFetch(
+//   "/api/reports/retry",
+//   {
+//     requestId: detailChannel.row.requestId,
+//     contactId: detailChannel.row.contactId,
+//     channelType: detailChannel.channel.channelType,
+//   }
+// );
+//       setDetailChannel(null);
+//       load();
+//     } catch (err: any) {
+//       alert(err.message ?? "Retry failed.");
+//     } finally {
+//       setRetrying(false);
+//     }
+//   }
+
+async function handleRetry(row: ReportRow, channel: ChannelRow) {
+  const key = `${row.requestId}:${row.contactId}:${channel.channelType}`;
+  setRetryingKey(key);
+  try {
+    await secureFetch("/api/report/retry", {
+      requestId: row.requestId,
+      contactId: row.contactId,
+      channelType: channel.channelType,
+    });
+    load();
+  } catch (err: any) {
+    alert(err.message ?? "Retry failed.");
+  } finally {
+    setRetryingKey(null);
   }
+}
 
   function overallStatusBadge(row: ReportRow) {
     const anyFailed = row.channels.some((c) => c.latestStatus === "FAILED");
@@ -75,7 +116,7 @@ export default function ReportPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const session = await getSession();
+      // const session = await getSession();
       const payload: ReportFilters = {
         ...filters,
         dateFrom: filters.dateFrom ? new Date(filters.dateFrom).toISOString() : null,
@@ -83,7 +124,12 @@ export default function ReportPage() {
         page,
         size: PAGE_SIZE,
       };
-      const data = await getReport(session, payload);
+      // const data = await getReport(session, payload);
+      const data = await secureFetch<PageResponse<ReportRow>>(
+        "/api/report/list",
+        payload
+      );
+
       setRows(data.content);
       setTotalPages(data.totalPages);
     } catch {
@@ -91,7 +137,7 @@ export default function ReportPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, page, getSession]);
+  }, [filters, page, secureFetch]);
 
   useEffect(() => {
     load();
@@ -110,8 +156,16 @@ export default function ReportPage() {
 //     const key = `${row.requestId}:${row.contactId}`;
 //     setRetryingKey(key);
 //     try {
-//       const session = await getSession();
-//       await retryNotification(session, row.requestId, row.contactId);
+//       // const session = await getSession();
+//       // await retryNotification(session, row.requestId, row.contactId);
+//       await secureFetch(
+//   "/api/reports/retry",
+//   {
+//     requestId: detailChannel.row.requestId,
+//     contactId: detailChannel.row.contactId,
+//     channelType: detailChannel.channel.channelType,
+//   }
+// );
 //       load();
 //     } catch (err: any) {
 //       alert(err.message ?? "Retry failed.");
@@ -256,6 +310,8 @@ export default function ReportPage() {
                 const badge = overallStatusBadge(row);
                 const bg = GROUP_COLORS[idx % 2];
 
+                console.log(row)
+
                 return (
                   <>
                     <tr
@@ -268,8 +324,8 @@ export default function ReportPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-300 font-mono text-xs">{row.requestId}</td>
                       <td className="px-4 py-3 text-gray-200">
-                        <div>{row.contactName}</div>
-                        <div className="text-xs text-gray-500">{row.contactEmail ?? row.contactPhone}</div>
+                        <div>{row.contactId}</div>
+                        {/* <div className="text-xs text-gray-500">{row.contactEmail ?? row.contactPhone}</div> */}
                       </td>
                       <td className="px-4 py-3 text-gray-300">{row.campaignName ?? "—"}</td>
                       <td className="px-4 py-3 text-gray-300 text-xs">
@@ -280,7 +336,7 @@ export default function ReportPage() {
                       </td>
                     </tr>
 
-                    {isExpanded && (
+                    {/* {isExpanded && (
                       <tr className={bg}>
                         <td></td>
                         <td colSpan={5} className="px-4 pb-4">
@@ -319,7 +375,65 @@ export default function ReportPage() {
                           </div>
                         </td>
                       </tr>
-                    )}
+                    )} */}
+
+                    {isExpanded && (
+  <tr className={bg}>
+    <td></td>
+    <td colSpan={5} className="px-4 pb-4">
+      <div className="border border-white/10 rounded-lg overflow-hidden">
+        {row.channels.map((channel) => {
+          const retryKey = `${row.requestId}:${row.contactId}:${channel.channelType}`;
+          return (
+            <div
+              key={channel.channelType}
+              className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-0"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-white font-medium w-20">
+                  {CHANNEL_LABELS[channel.channelType] ?? channel.channelType}
+                </span>
+                <span className="text-sm text-white font-medium w-80">
+                  { channel.userData}
+                </span>
+                <span
+                  className={`text-xs px-2 py-1 rounded-md ${
+                    channel.latestStatus === "DELIVERED" || channel.latestStatus === "SENT"
+                      ? "bg-green-500/10 text-green-400"
+                      : channel.latestStatus === "FAILED"
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-yellow-500/10 text-yellow-400"
+                  }`}
+                >
+                  {channel.latestStatus}
+                </span>
+                <span className="text-xs text-gray-500">Retries: {channel.retryCount}/3</span>
+              </div>
+
+              <div className="flex gap-2">
+                {channel.retryEligible && (
+                  <button
+                    onClick={() => handleRetry(row, channel)}
+                    disabled={retryingKey === retryKey}
+                    className="px-3 py-1.5 rounded-lg text-xs border border-[#2c4a63] text-[#6b9bc4] hover:bg-[#2c4a63]/10 disabled:opacity-50"
+                  >
+                    {retryingKey === retryKey ? "Retrying…" : "Retry"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setDetailChannel(channel)}
+                  className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-300 hover:bg-white/5"
+                >
+                  Show Content
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </td>
+  </tr>
+)}
                   </>
                 );
               })
@@ -329,13 +443,18 @@ export default function ReportPage() {
       </div>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-
+{/* 
       <ChannelDetailModal
         open={!!detailChannel}
         channel={detailChannel?.channel ?? null}
         onClose={() => setDetailChannel(null)}
         onRetry={handleRetry}
         retrying={retrying}
+      /> */}
+      <ChannelDetailModal
+        open={!!detailChannel}
+        channel={detailChannel}
+        onClose={() => setDetailChannel(null)}
       />
     </div>
     

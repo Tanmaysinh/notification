@@ -35,6 +35,8 @@ export interface ChannelRow {
   latestStatus: string;
   retryCount: number;
   retryEligible: boolean;
+  userData: string;
+
 }
 
 export interface ReportRow {

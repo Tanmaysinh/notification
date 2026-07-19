@@ -17,6 +17,7 @@ export default function PreviewPanel({
   activePreview: TemplateType;
   onSelectPreview: (type: TemplateType) => void;
 }) {
+
   const anyEnabled = channels.sms.enabled || channels.email.enabled || channels.push.enabled;
   const previewTemplate: Template | undefined = channels[activePreview].templates.find(
     (t) => t.templateId === channels[activePreview].templateId
