@@ -6,28 +6,22 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 
-/**
- * Shared fields for SMS / Email / Push templates. @MappedSuperclass means
- * Hibernate inlines these columns into each subclass's own table — no
- * separate "base_template" table gets created, this is purely for OOP
- * reuse across the three template entities.
- */
 @MappedSuperclass
 public abstract class NotificationTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    protected String templateId;
+    private String templateId;
 
     @Column(nullable = false)
-    protected String name;
+    private String name;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    protected String content;
+    private String content;
 
-    protected NotificationTemplate() {}
+    NotificationTemplate() {}
 
-    protected NotificationTemplate(String name, String content) {
+    NotificationTemplate(String name, String content) {
         this.name = name;
         this.content = content;
     }

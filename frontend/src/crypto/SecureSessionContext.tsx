@@ -1,110 +1,3 @@
-// "use client";
-
-// import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-// import { performHandshake } from "./handshake";
-// import type { SecureSession } from "./handshake";
-// import { encryptJson, decryptJson } from "./cryptoService";
-// import type { EncryptedEnvelope } from "./cryptoService";
-
-// // interface SecureSessionContextValue {
-// //   ready: boolean;
-// //   error: string | null;
-// //   secureFetch: <TResponse = unknown>(url: string, body: unknown, init?: RequestInit) => Promise<TResponse>;
-// // }
-
-// interface SecureSessionContextValue {
-//   ready: boolean;
-//   error: string | null;
-//   secureFetch: <TResponse = unknown>(url: string, body: unknown, init?: RequestInit) => Promise<TResponse>;
-//   getSession: () => Promise<SecureSession>;
-// }
-
-
-
-// const SecureSessionContext = createContext<SecureSessionContextValue | null>(null);
-
-// const REHANDSHAKE_MARGIN_MS = 30_000; // re-handshake 30s before actual expiry
-
-// export function SecureSessionProvider({ children }: { children: React.ReactNode }) {
-//   const sessionRef = useRef<SecureSession | null>(null);
-//   const handshakePromiseRef = useRef<Promise<SecureSession> | null>(null);
-//   const [ready, setReady] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   const ensureSession = useCallback(async (): Promise<SecureSession> => {
-//     const current = sessionRef.current;
-//     if (current && Date.now() < current.expiresAt - REHANDSHAKE_MARGIN_MS) {
-//       return current;
-//     }
-
-//     // De-dupe concurrent handshake calls (e.g. two requests fire at once on cold load)
-//     if (!handshakePromiseRef.current) {
-//       handshakePromiseRef.current = performHandshake().finally(() => {
-//         handshakePromiseRef.current = null;
-//       });
-//     }
-
-//     const session = await handshakePromiseRef.current;
-//     sessionRef.current = session;
-//     return session;
-//   }, []);
-
-//   useEffect(() => {
-//     ensureSession()
-//       .then(() => setReady(true))
-//       .catch((err) => setError(err.message ?? "Could not establish secure channel"));
-//   }, [ensureSession]);
-
-//   const secureFetch = useCallback(
-//     async <TResponse = unknown,>(url: string, body: unknown, init: RequestInit = {}): Promise<TResponse> => {
-//       const session = await ensureSession();
-//       const envelope = await encryptJson(session.aesKey, body);
-
-//       const res = await fetch(url, {
-//         method: "POST",
-//         ...init,
-//         headers: {
-//           "Content-Type": "application/json",
-//           "X-Session-Id": session.sessionId,
-//           ...(init.headers ?? {}),
-//         },
-//         body: JSON.stringify(envelope),
-//       });
-
-//       const responseEnvelope: EncryptedEnvelope | { error: string } = await res.json();
-
-//       if (!res.ok) {
-//         const message =
-//           "error" in responseEnvelope ? (responseEnvelope as any).error : "Request failed";
-//         throw new Error(message);
-//       }
-
-//       return decryptJson<TResponse>(session.aesKey, responseEnvelope as EncryptedEnvelope);
-//     },
-//     [ensureSession]
-//   );
-
-// //   return (
-// //     <SecureSessionContext.Provider value={{ ready, error, secureFetch }}>
-// //       {children}
-// //     </SecureSessionContext.Provider>
-// //   );
-
-//   return (
-//   <SecureSessionContext.Provider value={{ ready, error, secureFetch, getSession: ensureSession }}>
-//     {children}
-//   </SecureSessionContext.Provider>
-// );
-// }
-
-// export function useSecureSession() {
-//   const ctx = useContext(SecureSessionContext);
-//   if (!ctx) throw new Error("useSecureSession must be used within SecureSessionProvider");
-//   return ctx;
-// }
-
-
-
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
@@ -117,6 +10,7 @@ interface SecureSessionContextValue {
   ready: boolean;
   error: string | null;
   secureFetch: <TResponse = unknown>(url: string, body: unknown, init?: RequestInit) => Promise<TResponse>;
+  apiFetch: <TResponse = unknown>(url: string,init?: RequestInit) => Promise<TResponse>;
   getSession: () => Promise<SecureSession>;
   clearSession: () => void;
 }
@@ -152,33 +46,67 @@ export function SecureSessionProvider({ children }: { children: React.ReactNode 
       .catch((err) => setError(err.message ?? "Could not establish secure channel"));
   }, [ensureSession]);
 
-  const secureFetch = useCallback(
-    async <TResponse = unknown,>(url: string, body: unknown, init: RequestInit = {}): Promise<TResponse> => {
-      const session = await ensureSession();
-      const envelope = await encryptJson(session.aesKey, body);
+  
+const secureFetch = useCallback(
+  async <TResponse = unknown,>(url: string, body: unknown, init: RequestInit = {}): Promise<TResponse> => {
+    const session = await ensureSession();
+    const envelope = await encryptJson(session.aesKey, body);
 
-      const res = await fetch(url, {
-        method: "POST",
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": session.sessionId,
-          ...(init.headers ?? {}),
-        },
-        body: JSON.stringify(envelope),
-      });
+    const token = localStorage.getItem("token");
 
-      const responseEnvelope: EncryptedEnvelope | { error: string } = await res.json();
+    const res = await fetch(url, {
+      method: "POST",
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": session.sessionId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers ?? {}),
+      },
+      body: JSON.stringify(envelope),
+    });
 
-      if (!res.ok) {
-        const message = "error" in responseEnvelope ? (responseEnvelope as any).error : "Request failed";
-        throw new Error(message);
-      }
+    const responseEnvelope: EncryptedEnvelope | { error: string } = await res.json();
 
-      return decryptJson<TResponse>(session.aesKey, responseEnvelope as EncryptedEnvelope);
+    if (!res.ok) {
+      const message = "error" in responseEnvelope ? (responseEnvelope as any).error : "Request failed";
+      throw new Error(message);
+    }
+
+    return decryptJson<TResponse>(session.aesKey, responseEnvelope as EncryptedEnvelope);
+  },
+  [ensureSession]
+);
+
+async function apiFetchImpl<T = unknown>(
+  url: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const session = await ensureSession();
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
     },
-    [ensureSession]
+  });
+
+  const body = await res.json();
+
+  if (!res.ok) {
+    throw new Error(body.error ?? "Request failed");
+  }
+
+  return decryptJson<T>(
+    session.aesKey,
+    body as EncryptedEnvelope
   );
+}
+
+const apiFetch = useCallback(apiFetchImpl, []);
 
   function clearSession() {
     sessionRef.current = null;
@@ -186,7 +114,7 @@ export function SecureSessionProvider({ children }: { children: React.ReactNode 
   }
 
   return (
-    <SecureSessionContext.Provider value={{ ready, error, secureFetch, getSession: ensureSession, clearSession }}>
+    <SecureSessionContext.Provider value={{ ready, error, secureFetch, apiFetch,getSession: ensureSession, clearSession }}>
       {children}
     </SecureSessionContext.Provider>
   );
@@ -197,3 +125,4 @@ export function useSecureSession() {
   if (!ctx) throw new Error("useSecureSession must be used within SecureSessionProvider");
   return ctx;
 }
+

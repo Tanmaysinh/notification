@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-import { getPage, createItem, updateItem, deleteItem } from "@/lib/apiClient";
+// import { getPage, createItem, updateItem, deleteItem } from "@/lib/apiClient";
 import type { Campaign, CampaignFormValues } from "@/types/campaign";
 import DataTable, { type Column } from "@/components/DataTable";
 import Pagination from "@/components/Pagination";
@@ -10,8 +10,17 @@ import CampaignFormModal from "@/components/CampaignFormModal";
 const PAGE_SIZE = 10;
 const API_PATH = "/api/campaigns";
 
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 export default function CampaignPage() {
-  const { getSession } = useSecureSession();
+  // const { getSession } = useSecureSession();
+  const { secureFetch } = useSecureSession();
 
   const [rows, setRows] = useState<Campaign[]>([]);
   const [page, setPage] = useState(0);
@@ -30,8 +39,14 @@ export default function CampaignPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const session = await getSession();
-      const data = await getPage<Campaign>(session, API_PATH, { page, size: PAGE_SIZE, search });
+      const data = await secureFetch<PageResponse<Campaign>>(
+      `${API_PATH}/list`,
+      {
+        page,
+        size: PAGE_SIZE,
+        search,
+      }
+    );
       setRows(data.content);
       setTotalPages(data.totalPages);
     } catch {
@@ -39,7 +54,7 @@ export default function CampaignPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, getSession]);
+  }, [page, search, secureFetch]);
 
   useEffect(() => {
     load();
@@ -65,12 +80,26 @@ export default function CampaignPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const session = await getSession();
+      // const session = await getSession();
+      // if (editing) {
+      //   await updateItem<Campaign>(session, API_PATH, editing.campaignId, values);
+      // } else {
+      //   await createItem<Campaign>(session, API_PATH, values);
+      // }
       if (editing) {
-        await updateItem<Campaign>(session, API_PATH, editing.campaignId, values);
-      } else {
-        await createItem<Campaign>(session, API_PATH, values);
-      }
+  await secureFetch<Campaign>(
+    `${API_PATH}/${editing.campaignId}`,
+    values,
+    {
+      method: "PUT",
+    }
+  );
+} else {
+  await secureFetch<Campaign>(
+    API_PATH,
+    values
+  );
+}
       setModalOpen(false);
       load();
     } catch (err: any) {
@@ -84,8 +113,15 @@ export default function CampaignPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const session = await getSession();
-      await deleteItem(session, API_PATH, deleteTarget.campaignId);
+      // const session = await getSession();
+      // await deleteItem(session, API_PATH, deleteTarget.campaignId);
+      await secureFetch(
+  `${API_PATH}/${deleteTarget.campaignId}`,
+  undefined,
+  {
+    method: "DELETE",
+  }
+);
       setDeleteTarget(null);
       load();
     } finally {

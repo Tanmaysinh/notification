@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Template, TemplateFormValues, TemplateType } from "@/types/template";
-import { getPage, createItem, updateItem, deleteItem } from "@/lib/apiClient";
+// import { getPage, createItem, updateItem, deleteItem } from "@/lib/apiClient";
 import DataTable, { type Column } from "@/components/DataTable";
 import Pagination from "@/components/Pagination";
 import Modal from "@/components/Modal";
@@ -36,14 +36,29 @@ export default function TemplateManager({
 
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
   const [deleting, setDeleting] = useState(false);
+const { secureFetch } = useSecureSession();
 
-  const { getSession } = useSecureSession();
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 const load = useCallback(async () => {
   setLoading(true);
+
   try {
-    const session = await getSession();
-    const data = await getPage<Template>(session, apiPath, { page, size: PAGE_SIZE, search });
+    const data = await secureFetch<PageResponse<Template>>(
+      `${apiPath}/list`,
+      {
+        page,
+        size: PAGE_SIZE,
+        search,
+      }
+    );
+
     setRows(data.content);
     setTotalPages(data.totalPages);
   } catch {
@@ -51,7 +66,7 @@ const load = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [apiPath, page, search, getSession]);
+}, [apiPath, page, search, secureFetch]);
 
 //   const load = useCallback(async () => {
 //     setLoading(true);
@@ -109,15 +124,26 @@ const load = useCallback(async () => {
 
 async function handleSave(e: React.FormEvent) {
   e.preventDefault();
+
   setSaving(true);
   setFormError(null);
+
   try {
-    const session = await getSession();
     if (editing) {
-      await updateItem<Template>(session, apiPath, editing.templateId, form);
+      await secureFetch<Template>(
+        `${apiPath}/${editing.templateId}`,
+        form,
+        {
+          method: "PUT",
+        }
+      );
     } else {
-      await createItem<Template>(session, apiPath, form);
+      await secureFetch<Template>(
+        apiPath,
+        form
+      );
     }
+
     setModalOpen(false);
     load();
   } catch (err: any) {
@@ -141,10 +167,18 @@ async function handleSave(e: React.FormEvent) {
 
 async function handleDelete() {
   if (!deleteTarget) return;
+
   setDeleting(true);
+
   try {
-    const session = await getSession();
-    await deleteItem(session, apiPath, deleteTarget.templateId);
+    await secureFetch(
+      `${apiPath}/${deleteTarget.templateId}`,
+      undefined,
+      {
+        method: "DELETE",
+      }
+    );
+
     setDeleteTarget(null);
     load();
   } finally {

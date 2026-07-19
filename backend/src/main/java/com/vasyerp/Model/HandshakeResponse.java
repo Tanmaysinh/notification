@@ -4,9 +4,9 @@ package com.vasyerp.Model;
 import java.util.Map;
 
 public class HandshakeResponse {
-    private Map<String, Object> serverPublicKey;
-    private String sessionId;
-    private long expiresIn;
+    private final Map<String, Object> serverPublicKey;
+    private final String sessionId;
+    private final long expiresIn;
 
     public HandshakeResponse(Map<String, Object> serverPublicKey, String sessionId, long expiresIn) {
         this.serverPublicKey = serverPublicKey;

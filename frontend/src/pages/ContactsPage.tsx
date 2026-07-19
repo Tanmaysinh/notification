@@ -1,18 +1,27 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSecureSession } from "@/crypto/SecureSessionContext";
 import type { Contact, ContactFormValues } from "@/types/contact";
-import { getPage, createItem, updateItem, deleteItem } from "@/lib/apiClient";
 import DataTable, { type Column } from "@/components/DataTable";
 import Pagination from "@/components/Pagination";
 import Modal from "@/components/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { useSecureSession } from "@/crypto/SecureSessionContext";
 
 const PAGE_SIZE = 10;
 const API_PATH = "/api/contacts";
 
-const emptyForm: ContactFormValues = { name: "", email: "", phoneNumber: "" };
+const emptyForm: ContactFormValues = { name: "", email: "", phoneNumber: "", deviceToken: "" };
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 export default function ContactsPage() {
+  const { secureFetch } = useSecureSession();
+
   const [rows, setRows] = useState<Contact[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -28,39 +37,27 @@ export default function ContactsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-//   const load = useCallback(async () => {
-//     setLoading(true);
-//     try {
-//       const data = await getPage<Contact>(API_PATH, { page, size: PAGE_SIZE, search });
-//       setRows(data.content);
-//       setTotalPages(data.totalPages);
-//     } catch {
-//       setRows([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [page, search]);
-
-const { getSession } = useSecureSession();
-const load = useCallback(async () => {
-  setLoading(true);
-  try {
-    const session = await getSession();
-    const data = await getPage<Contact>(session, API_PATH, { page, size: PAGE_SIZE, search });
-    setRows(data.content);
-    setTotalPages(data.totalPages);
-  } catch {
-    setRows([]);
-  } finally {
-    setLoading(false);
-  }
-}, [ page, search]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await secureFetch<PageResponse<Contact>>(`${API_PATH}/list`, {
+        page,
+        size: PAGE_SIZE,
+        search,
+      });
+      setRows(data.content);
+      setTotalPages(data.totalPages);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, secureFetch]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // reset to page 0 whenever the search changes
   useEffect(() => {
     setPage(0);
   }, [search]);
@@ -74,79 +71,62 @@ const load = useCallback(async () => {
 
   function openEdit(contact: Contact) {
     setEditing(contact);
-    setForm({ name: contact.name, email: contact.email, phoneNumber: contact.phoneNumber });
+    setForm({
+      name: contact.name,
+      email: contact.email,
+      phoneNumber: contact.phoneNumber,
+      deviceToken: contact.deviceToken ?? "",
+    });
     setFormError(null);
     setModalOpen(true);
   }
 
-//   async function handleSave(e: React.FormEvent) {
-//     e.preventDefault();
-//     setSaving(true);
-//     setFormError(null);
-//     try {
-//       if (editing) {
-//         await updateItem<Contact>(API_PATH, editing.contactId, form);
-//       } else {
-//         await createItem<Contact>(API_PATH, form);
-//       }
-//       setModalOpen(false);
-//       load();
-//     } catch (err: any) {
-//       setFormError(err.message ?? "Could not save contact.");
-//     } finally {
-//       setSaving(false);
-//     }
-//   }
-
-async function handleSave(e: React.FormEvent) {
-  e.preventDefault();
-  setSaving(true);
-  setFormError(null);
-  try {
-    const session = await getSession();
-    if (editing) {
-      await updateItem<Contact>(session, API_PATH, editing.contactId, form);
-    } else {
-      await createItem<Contact>(session, API_PATH, form);
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      if (editing) {
+        await secureFetch<Contact>(`${API_PATH}/${editing.contactId}`, form, { method: "PUT" });
+      } else {
+        await secureFetch<Contact>(API_PATH, form);
+      }
+      setModalOpen(false);
+      load();
+    } catch (err: any) {
+      setFormError(err.message ?? "Could not save contact.");
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
-    load();
-  } catch (err: any) {
-    setFormError(err.message ?? "Could not save template.");
-  } finally {
-    setSaving(false);
   }
-}
 
-//   async function handleDelete() {
-//     if (!deleteTarget) return;
-//     setDeleting(true);
-//     try {
-//       await deleteItem(API_PATH, deleteTarget.contactId);
-//       setDeleteTarget(null);
-//       load();
-//     } finally {
-//       setDeleting(false);
-//     }
-//   }
-
-async function handleDelete() {
-  if (!deleteTarget) return;
-  setDeleting(true);
-  try {
-    const session = await getSession();
-    await deleteItem(session, API_PATH, deleteTarget.contactId);
-    setDeleteTarget(null);
-    load();
-  } finally {
-    setDeleting(false);
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await secureFetch(`${API_PATH}/${deleteTarget.contactId}`, undefined, { method: "DELETE" });
+      setDeleteTarget(null);
+      load();
+    } finally {
+      setDeleting(false);
+    }
   }
-}
 
   const columns: Column<Contact>[] = [
     { header: "Name", render: (r) => r.name },
     { header: "Email", render: (r) => r.email },
     { header: "Phone", render: (r) => r.phoneNumber },
+    {
+      header: "Device Token",
+      render: (r) =>
+        r.deviceToken ? (
+          <span className="font-mono text-xs text-gray-400">
+            {r.deviceToken.slice(0, 12)}…
+          </span>
+        ) : (
+          <span className="text-gray-600">—</span>
+        ),
+    },
   ];
 
   return (
@@ -219,6 +199,18 @@ async function handleDelete() {
               value={form.phoneNumber}
               onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
               className="bg-[#0f1420] border border-white/10 rounded-lg px-4 py-2.5 w-full outline-none text-white text-sm focus:border-[#2c4a63]"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 block mb-1.5">
+              Device Token <span className="text-gray-500">(optional, for push)</span>
+            </label>
+            <input
+              type="text"
+              value={form.deviceToken ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, deviceToken: e.target.value }))}
+              className="bg-[#0f1420] border border-white/10 rounded-lg px-4 py-2.5 w-full outline-none text-white text-sm focus:border-[#2c4a63] font-mono"
+              placeholder="FCM / APNs device token"
             />
           </div>
 

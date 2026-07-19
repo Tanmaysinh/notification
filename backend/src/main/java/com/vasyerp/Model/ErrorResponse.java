@@ -2,7 +2,7 @@ package com.vasyerp.Model;
 
 
 public class ErrorResponse {
-    private String error;
+    private final String error;
 
     public ErrorResponse(String error) { this.error = error; }
     public String getError() { return error; }

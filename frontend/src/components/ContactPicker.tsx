@@ -1,7 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-import { getPage } from "@/lib/apiClient";
+// import { getPage } from "@/lib/apiClient";
 import type { Contact } from "@/types/contact";
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 export default function ContactPicker({
   selected,
@@ -10,18 +18,23 @@ export default function ContactPicker({
   selected: Contact[];
   onChange: (contacts: Contact[]) => void;
 }) {
-  const { getSession } = useSecureSession();
+  const { secureFetch } = useSecureSession();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+
+  
   const search = useCallback(
     async (term: string) => {
       setLoading(true);
       try {
-        const session = await getSession();
-        const data = await getPage<Contact>(session, "/api/contacts", { page: 0, size: 20, search: term });
+        // const session = await getSession();
+        // const data = await getPage<Contact>(session, "/api/contacts", { page: 0, size: 20, search: term });
+        const data = await secureFetch<PageResponse<Contact>>(
+  "/api/contacts/list", { page: 0, size: 20, search: term }
+);
         setResults(data.content);
       } catch {
         setResults([]);
@@ -29,7 +42,7 @@ export default function ContactPicker({
         setLoading(false);
       }
     },
-    [getSession]
+    [secureFetch]
   );
 
   useEffect(() => {

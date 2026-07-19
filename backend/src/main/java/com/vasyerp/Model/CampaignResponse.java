@@ -1,14 +1,14 @@
 package com.vasyerp.Model;
 
 public class CampaignResponse {
-    private String campaignId;
-    private String name;
-    private String smsTemplateId;
-    private String smsTemplateName;
-    private String emailTemplateId;
-    private String emailTemplateName;
-    private String pushTemplateId;
-    private String pushTemplateName;
+    private final String campaignId;
+    private final String name;
+    private final String smsTemplateId;
+    private final String smsTemplateName;
+    private final String emailTemplateId;
+    private final String emailTemplateName;
+    private final String pushTemplateId;
+    private final String pushTemplateName;
 
     public CampaignResponse(String campaignId, String name,
                             String smsTemplateId, String smsTemplateName,

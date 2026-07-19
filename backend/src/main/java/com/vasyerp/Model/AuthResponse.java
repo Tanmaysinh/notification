@@ -2,8 +2,8 @@ package com.vasyerp.Model;
 
 
 public class AuthResponse {
-    private String token;
-    private UserSummary user;
+    private final String token;
+    private final UserSummary user;
 
     public AuthResponse(String token, UserSummary user) {
         this.token = token;
@@ -14,9 +14,9 @@ public class AuthResponse {
     public UserSummary getUser() { return user; }
 
     public static class UserSummary {
-        private Long id;
-        private String email;
-        private String name;
+        private final Long id;
+        private final String email;
+        private final String name;
 
         public UserSummary(Long id, String email, String name) {
             this.id = id;

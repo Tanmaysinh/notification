@@ -1,6 +1,6 @@
 import { crypto_ } from "./cryptoService";
 
-const HANDSHAKE_URL = "/api/crypto/handshake";
+const HANDSHAKE_URL = "/crypto/handshake";
 
 interface HandshakeResponse {
   serverPublicKey: JsonWebKey;

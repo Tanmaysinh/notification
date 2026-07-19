@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/Modal";
 import ChannelPreview from "@/components/previews/ChannelPreview";
 import { useSecureSession } from "@/crypto/SecureSessionContext";
-import { getAllTemplates } from "@/lib/apiClient";
+// import { getAllTemplates } from "@/lib/apiClient";
 import type { Template, TemplateType } from "@/types/template";
 import type { Campaign, CampaignFormValues } from "@/types/campaign";
 
@@ -17,6 +17,14 @@ interface ChannelState {
   templateId: string | null;
   templates: Template[];
   loading: boolean;
+}
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 function initChannelState(): Record<TemplateType, ChannelState> {
@@ -44,11 +52,13 @@ export default function CampaignFormModal({
   submitError: string | null;
   title?: string;
 }) {
-  const { getSession } = useSecureSession();
+  const { secureFetch } = useSecureSession();
   const [name, setName] = useState("");
   const [channels, setChannels] = useState<Record<TemplateType, ChannelState>>(initChannelState());
   const [activePreview, setActivePreview] = useState<TemplateType>("sms");
   const [errors, setErrors] = useState<Partial<Record<TemplateType, string>>>({});
+
+
 
   // Load templates for a channel the first time it's enabled
   async function ensureTemplatesLoaded(type: TemplateType) {
@@ -56,9 +66,34 @@ export default function CampaignFormModal({
 
     setChannels((c) => ({ ...c, [type]: { ...c[type], loading: true } }));
     try {
-      const session = await getSession();
-      const templates = await getAllTemplates<Template>(session, type);
-      setChannels((c) => ({ ...c, [type]: { ...c[type], templates, loading: false } }));
+    const response = await secureFetch<PageResponse<Template>>(
+  `/api/templates/${type}/list`,{
+    page: 0,
+    size: 1000,
+    search:""
+  }
+);
+
+console.log(response)
+
+setChannels((c) => ({
+  ...c,
+  [type]: {
+    ...c[type],
+    templates: response.content,
+    loading: false,
+  },
+}));
+
+      // setChannels((c) => ({
+      //   ...c,
+      //   [type]: {
+      //     ...c[type],
+      //     templates: response,
+      //     loading: false,
+      //   },
+      // }));
+      // setChannels((c) => ({ ...c, [type]: { ...c[type], templates, loading: false } }));
     } catch {
       setChannels((c) => ({ ...c, [type]: { ...c[type], loading: false } }));
     }
